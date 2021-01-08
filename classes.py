@@ -4,23 +4,27 @@ from config import access_token, access_token_secret, consumer_key, consumer_sec
 
 class Model:
     def __init__(self):
-        self.train_dataset = pd.DataFrame()
+        self.train_dataset = None
+        self.ckpt = None
         self.model = Sequential()
         self.tokenizer = Tokenizer(num_words=10000)
         self.X = self.Y = self.X_Test = self.X_Train = self.Y_Train = self.Y_Test = ''
-        self.vocab_size, self.maxlen = 0,  126
+        self.vocab_size, self.maxlen = 0,  140
 
     def input_train_data(self, dataset):
+        print("======Inputting Train Dataset==========\n")
+        dataset = root_dir(dataset)
         if dataset.split('.')[-1] == 'csv':
             try:
                 self.train_dataset = pd.read_csv(dataset, error_bad_lines=False, encoding='ISO-8859-1')
             except Exception as e:
-                return "Error on loading CSV Dataset", e
+                exit("Error on loading CSV Dataset: " + str(e))
         elif dataset.split('.')[-1] == 'json':
             try:
                 self.train_dataset = pd.read_json(dataset, lines=True)
             except Exception as e:
-                return "Error on loading JSON Dataset", e
+                print("Error on loading JSON Dataset")
+                exit(e)
         else:
             exit("Specify a csv or json dataset")
         try:
@@ -31,9 +35,11 @@ class Model:
         except KeyError:
             exit("Text data have no text field. Ensure your dataset has a text 'column'")
         except Exception as e:
-            exit(("Error", e))
+            exit(e)
+        print("========= Dataset Input Complete ============\n")
 
-    def preprocess(self, text):
+    @staticmethod
+    def preprocess(text):
         text = re.sub(r'http\S+', ' ', text)
         text = re.sub(r'@\w+', ' ', text)
         text = re.sub(r'pic.\S+', ' ', text)
@@ -45,51 +51,47 @@ class Model:
         return text.strip()
 
     def tokenize(self):
-        self.X_Train, self.X_Test, self.Y_Train, self.Y_Test = train_test_split(self.X,
-                                                                                self.Y,
-                                                                                test_size=0.25,
-                                                                                random_state=42)
-        self.tokenizer.fit_on_texts(self.X_Train)
-        self.X_Train = self.tokenizer.texts_to_sequences(self.X_Train)
-        self.X_Test = self.tokenizer.texts_to_sequences(self.X_Test)
-        self.vocab_size = len(self.tokenizer.word_index) + 1
-        print("Found {} unique words".format(self.vocab_size))
-        # self.maxlen = max(len(x) for x in self.X_Train)
-        self.X_Train = pad_sequences(self.X_Train, padding='post', maxlen=self.maxlen)
-        self.X_Test = pad_sequences(self.X_Test, padding='post', maxlen=self.maxlen)
+        print("=========== Tokenizing Training and Validation Texts ===============\n")
+        try:
+            self.X_Train, self.X_Test, self.Y_Train, self.Y_Test = train_test_split(self.X,
+                                                                                    self.Y,
+                                                                                    test_size=0.25,
+                                                                                    random_state=42)
+            self.tokenizer.fit_on_texts(self.X_Train)
+            self.X_Train = self.tokenizer.texts_to_sequences(self.X_Train)
+            self.X_Test = self.tokenizer.texts_to_sequences(self.X_Test)
+            self.vocab_size = len(self.tokenizer.word_index) + 1
+            print("Found {} unique words".format(self.vocab_size))
+            # self.maxlen = max(len(x) for x in self.X_Train)
+            self.X_Train = pad_sequences(self.X_Train, padding='post', maxlen=self.maxlen)
+            self.X_Test = pad_sequences(self.X_Test, padding='post', maxlen=self.maxlen)
+            print("============Tokenization Complete=======================\n")
+        except BaseException as e:
+            exit(e)
 
     def create_model(self):
-        print("Creating Sentiment Analytic model")
-        self.model.add(Embedding(self.vocab_size, 300, input_length=self.maxlen))
-        self.model.add(Conv1D(64, 2, activation='relu'))
-        self.model.add(MaxPooling1D())
-        self.model.add(Conv1D(128, 2, activation='relu'))
-        self.model.add(MaxPooling1D())
-        self.model.add(Conv1D(256, 3, activation='relu'))
-        self.model.add(MaxPooling1D())
-        self.model.add(Flatten())
-        self.model.add(Dense(128, activation='relu'))
+        print("=========== Creating Sentiment Analytic model =============\n")
+        self.model.add(Embedding(self.vocab_size, 100, input_length=self.maxlen))
+        self.model.add(LSTM(128, return_sequences=True))
         self.model.add(Dropout(0.5))
+        self.model.add(Flatten())
         self.model.add(Dense(1, activation='sigmoid'))
-        self.model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy', prcsn, rcll, f1_m])
+        self.model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy', Precision(), Recall()])
         self.model.summary()
+        print("\n============ Model Build Complete ==============")
 
     def ld_model(self, pth):
-        try:
-            self.model = load_model(pth, custom_objects={'prcsn': prcsn, 'rcll': rcll, 'f1_m': f1_m})
-            dirt = 'models/tokenizer.pkl'
-            if os.path.exists(dirt):
-                with open(dirt, 'rb') as f:
-                    self.tokenizer = dill.load(f)
-            else:
-                exit("Tokenizer file doesn't exist")
-            return True
-        except Exception as e:
-            return e
+        pth = root_dir(pth)
+        self.model = load_model(pth)  # custom_objects={'precision_1': Precision(), 'recall_1': Recall()})
+        f_path = root_dir('models/tokenizer.pkl')
+        if os.path.exists(f_path):
+            with open(f_path, 'rb') as f:
+                self.tokenizer = dill.load(f)
+        else:
+            raise FileNotFoundError("Tokenizer file doesn't exist")
 
     def train(self):
-        print("Model Training Process in Session")
-
+        print("\n================= Model Training Process in Session===================== \n")
         es = EarlyStopping(monitor='val_loss', mode='min', patience=1, verbose=1)
         history = self.model.fit(self.X_Train,
                                  self.Y_Train,
@@ -98,39 +100,42 @@ class Model:
                                  validation_data=(self.X_Test, self.Y_Test),
                                  batch_size=128,
                                  callbacks=[es])
-        _, train_accuracy, train_precision, train_recall, train_fscore = self.model.evaluate(self.X_Train,
-                                                                                             self.Y_Train,
-                                                                                             verbose=True)
-        print("Training metrics : \n")
-        print(f'Accuracy : {train_accuracy:{5}} \n'
-              f'Precision : {train_precision:{5}} \n'
+        _, train_accuracy, train_precision, train_recall = self.model.evaluate(self.X_Train,
+                                                                               self.Y_Train,
+                                                                               verbose=True)
+        train_fscore = f1_m(train_recall, train_precision)
+        print("Training metrics : ")
+        print(f'Accuracy : {train_accuracy:{.5}} \n'
+              f'Precision : {train_precision:{.5}} \n'
               f'Recall : {train_recall:{5}} \n'
               f'F-Score : {train_fscore:{5}} \n')
-        print()
-        _, test_accuracy, test_precision, test_recall, test_fscore = self.model.evaluate(self.X_Test,
-                                                                                         self.Y_Test,
-                                                                                         verbose=True)
+        print("\n===================== Training Complete=========================== \n")
+        print("=============== =Validation in progress ========================")
+        _, test_accuracy, test_precision, test_recall = self.model.evaluate(self.X_Test,
+                                                                            self.Y_Test,
+                                                                            verbose=True)
 
-        print("Testing metrics\n")
-        print(f'Accuract : {test_accuracy:{5}} \n'
+        test_fscore = f1_m(test_precision, test_precision)
+        print("\nTesting metrics")
+        print(f'Accuracy : {test_accuracy:{5}} \n'
               f'Precision : {test_precision:{5}} \n'
               f'Recall : {test_recall:{5}} \n'
               f'F-Score : {test_fscore:{5}}\n')
-        print()
-        ckpt = time.gmtime(time.time())
-        ckpt = 'model-' + str(ckpt[0]) + '-' + str(ckpt[1]) + '-' + str(ckpt[2])
-
-        if os.path.exists('models/' + ckpt + '.h5'):
-            os.remove('models/' + ckpt + '.h5')
-
-        self.model.save('models/' + ckpt + '.h5')
-
-        if os.path.exists('models/tokenizer.pkl'):
-            os.remove('models/tokenizer.pkl')
-
-        with open('models/tokenizer.pkl', 'wb') as f:
-            dill.dump(self.tokenizer, f)
-        return history
+        print("\n=================== Saving Model ===================")
+        try:
+            model_name = 'RNN-model@latest'
+            if os.path.exists(root_dir('models/' + model_name)):
+                os.remove(root_dir('models/' + model_name))
+            self.model.save(root_dir(None) + '/models/' + model_name)
+            if os.path.exists(root_dir('models/tokenizer.pkl')):
+                os.remove(root_dir('models/tokenizer.pkl'))
+            with open(root_dir('models/tokenizer.pkl'), 'wb') as f:
+                dill.dump(self.tokenizer, f)
+            print("\n=================== Saving Complete ===================")
+            return history
+        except BaseException as e:
+            print("Error Saving the model : ")
+            exit(e)
 
     def classify(self, text):
         text = self.preprocess(text)
@@ -149,7 +154,8 @@ class Model:
             exit('Error obtaining prediction classification')
         return rt
 
-    def plot(self, hist):
+    @staticmethod
+    def plot(hist):
         plt.style.use('ggplot')
         acc = hist.history['accuracy']
         val_acc = hist.history['val_accuracy']
@@ -168,30 +174,28 @@ class Model:
         plt.title('Training and validation loss')
         plt.legend()
         plt.show()
-        plt.savefig('')
 
 
 class StdOutListener(StreamListener):
-    def __init__(self, model_dir):
+    def __init__(self, filename):
         super().__init__()
         self.auth = OAuthHandler(consumer_key, consumer_secret)
         self.auth.set_access_token(access_token, access_token_secret)
         t = time.gmtime(time.time())
-        self.outfile = "StreamData-" + str(t[0]) + '-' + str(t[1]) + '-' + str(t[2]) + '.csv'
-        with open(self.outfile, 'w', encoding='utf-8') as f:
+        self.outfile = "stream_data/" + filename + "-" + str(t[2]) + '-' + str(t[1]) + '-' + str(t[0]) + '.csv'
+        with open(root_dir(self.outfile), 'w', encoding='utf-8') as f:
             writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             writer.writerow(['Created_at', 'Text', 'SentimentClassification', 'PolarityScore'])
-            # f.write('created_at, text, classification, score')
-            # f.write("\n")
 
-        if model_dir:
+        # if model_dir:
             try:
                 self.model = Model()
-                self.model.ld_model(model_dir)
+                self.model.ld_model('models/RNN-model@latest')
             except Exception as e:
-                exit(("StdOutListenerError : ", e))
-        else:
-            exit("Please Specify model's directory")
+                print("StdOutListenerError : ")
+                exit(e)
+        # else:
+        #     exit("Please Specify model's directory")
 
     def on_status(self, status):
         if hasattr(status, 'retweeted_status'):
@@ -212,12 +216,8 @@ class StdOutListener(StreamListener):
             with open(self.outfile, 'a', encoding='utf-8') as f:
                 writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
                 writer.writerow([status.created_at, tweet, prediction['classification'], prediction['score']])
-                # file_data = str(status.created_at) + ', ' + str(tweet) + ', ' + str(prediction["classification"]) + ', ' + str(prediction["score"])
-                # f.write(file_data)
-                # f.write("\n")
-
-        except KeyError:
-            pass
+        except KeyError as e:
+            exit(e)
 
     # def on_data(self, data):
     #     data = json.loads(data)
