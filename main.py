@@ -23,7 +23,7 @@ def main(arg):
             stream = Stream(listener.auth, listener, tweet_mode='extended')
             stream.filter(track=[arg[2]])
         else:
-            exit("Please Specify model's")
+            exit("Please Specify stream keyword")
         # else:
         #     exit("Specify model from the model directory")
     else:

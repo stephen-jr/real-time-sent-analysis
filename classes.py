@@ -5,7 +5,6 @@ from config import access_token, access_token_secret, consumer_key, consumer_sec
 class Model:
     def __init__(self):
         self.train_dataset = None
-        self.ckpt = None
         self.model = Sequential()
         self.tokenizer = Tokenizer(num_words=10000)
         self.X = self.Y = self.X_Test = self.X_Train = self.Y_Train = self.Y_Test = ''
@@ -210,9 +209,11 @@ class StdOutListener(StreamListener):
                 tweet = status.text
         prediction = self.model.classify(tweet)
         try:
+            print("\n===============================================")
             print(f'Text: {tweet}')
             print(f'Sentiment Classification: {prediction["classification"]}')
             print(f"Model's Prediction Score: {prediction['score']}")
+            print('================================================')
             with open(self.outfile, 'a', encoding='utf-8') as f:
                 writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
                 writer.writerow([status.created_at, tweet, prediction['classification'], prediction['score']])
