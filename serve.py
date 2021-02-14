@@ -4,6 +4,7 @@ import shlex
 import subprocess
 from classes import Model
 from keras import backend as k
+import silence_tensorflow.auto
 from datetime import datetime
 
 from flask import Flask, render_template, Response, request, jsonify, send_from_directory
@@ -24,9 +25,7 @@ def server():
         return formatted_date
 
     def event_stream(system_command, **kwargs):
-        global model
-        if model:
-            k.clear_session()
+        k.clear_session()
         popen = subprocess.Popen(
             shlex.split(system_command),
             stdout=subprocess.PIPE,
@@ -49,7 +48,7 @@ def server():
         # if return_code:
         #     raise subprocess.CalledProcessError(return_code, system_command)
 
-    @app.route('/train', methods=['GET'])
+    @app.route('/train', methods=['POST'])
     def train():
         return Response(event_stream('py main.py --train train.csv'), mimetype="text/event-stream")
 
@@ -116,13 +115,6 @@ def server():
         try:
             sentence = request.args['sentence']
             if sentence:
-                # sentence = url_decode(sentence)
-                # print(sentence)
-                # for s in sentence:
-                #     sentence = s
-                #     break
-                # sentence = str(sentence)
-                # print(sentence)
                 classification = model.classify(sentence)
                 if classification:
                     return jsonify({

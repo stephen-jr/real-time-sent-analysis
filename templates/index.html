@@ -1,14 +1,25 @@
-<!Doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Flask Server</title>
-</head>
-<body>
-    <script type="text/javascript"
-            src="{{url_for('static', filename='index.js')}}"></script>
-</body>
+<!DOCTYPE html>
+<html lang=en>
+    <head>
+        <meta charset=utf-8>
+        <meta http-equiv=X-UA-Compatible content="IE=edge">
+        <meta name=viewport content="width=device-width,initial-scale=1">
+        <link rel=icon href=/favicon.ico> <title>Real Time Sentiment Analysis</title>
+        <link href="{{url_for('static', filename='/css/app.1df99011.css')}}" rel=preload as=style>
+        <link href="{{url_for('static', filename='/css/chunk-vendors.71dc5c79.css')}}" rel=preload as=style>
+        <link href="{{url_for('static', filename='/js/app.a6e1f953.js')}}" rel=preload as=script>
+        <link href="{{url_for('static', filename='/js/chunk-vendors.8387e2e5.js')}}" rel=preload as=script>
+        <link href="{{url_for('static', filename='/css/chunk-vendors.71dc5c79.css')}}" rel=stylesheet>
+        <link href="{{url_for('static', filename='/css/app.1df99011.css')}}" rel=stylesheet>
+    </head>
+    <body>
+        <noscript>
+            <strong>We're sorry but Real Time Sentiment Analysis Application doesn't work properly without JavaScript enabled.
+                Please enable it to continue.
+            </strong>
+        </noscript>
+        <div id=app></div>
+        <script src="{{url_for('static', filename='/js/chunk-vendors.8387e2e5.js')}}"> </script>
+        <script src="{{url_for('static', filename='/js/app.a6e1f953.js')}}"> </script>
+    </body>
 </html>

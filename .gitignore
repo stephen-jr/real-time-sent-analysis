@@ -4,3 +4,4 @@
 *.h5
 *.pkl
 config.py
+/models

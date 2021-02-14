@@ -130,7 +130,7 @@ class Model:
                 os.remove(root_dir('models/tokenizer.pkl'))
             with open(root_dir('models/tokenizer.pkl'), 'wb') as f:
                 dill.dump(self.tokenizer, f)
-            print("\n=================== Saving Complete ===================")
+            print("\n=================== Save Complete ===================")
             return history
         except BaseException as e:
             print("Error Saving the model : ")
@@ -217,7 +217,7 @@ class StdOutListener(StreamListener):
             with open(self.outfile, 'a', encoding='utf-8') as f:
                 writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
                 writer.writerow([status.created_at, tweet, prediction['classification'], prediction['score']])
-        except KeyError as e:
+        except BaseException as e:
             exit(e)
 
     # def on_data(self, data):
