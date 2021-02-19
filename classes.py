@@ -210,7 +210,7 @@ class StdOutListener(StreamListener):
         prediction = self.model.classify(tweet)
         try:
             print("\n===============================================")
-            print(f'Text: {tweet}')
+            #print(f'Text: {tweet}')
             print(f'Sentiment Classification: {prediction["classification"]}')
             print(f"Model's Prediction Score: {prediction['score']}")
             print('================================================')
