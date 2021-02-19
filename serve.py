@@ -4,7 +4,7 @@ import shlex
 import subprocess
 from classes import Model
 from keras import backend as k
-import silence_tensorflow.auto
+#import silence_tensorflow.auto
 from datetime import datetime
 
 from flask import Flask, render_template, Response, request, jsonify, send_from_directory
@@ -37,11 +37,16 @@ def server():
         global process
         process = popen
         for stdout_line in iter(popen.stdout.readline, ""):
-            stream_obj = {
-                'execution': True,
-                'response': stdout_line.strip()
-            }
-            yield "data: {}\n\n".format(json.dumps(stream_obj))
+            try:
+                stream_obj = {
+                    'execution': True,
+                    'response': stdout_line.strip()
+                }
+                yield "data: {}\n\n".format(json.dumps(stream_obj))
+            except UnicodeDecodeError:
+                continue
+            except UnicodeEncodeError:
+                continue
         popen.stdout.close()
         yield "data: {}\n\n".format(json.dumps({'execution': False}))
         # return_code = popen.wait()

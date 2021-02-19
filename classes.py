@@ -210,7 +210,12 @@ class StdOutListener(StreamListener):
         prediction = self.model.classify(tweet)
         try:
             print("\n===============================================")
-            #print(f'Text: {tweet}')
+            try:
+                print(f'Text: {tweet.encode("utf-8")}')
+            except UnicodeEncodeError:
+                pass
+            except UnicodeDecodeError:
+                pass
             print(f'Sentiment Classification: {prediction["classification"]}')
             print(f"Model's Prediction Score: {prediction['score']}")
             print('================================================')
