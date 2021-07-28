@@ -187,12 +187,12 @@ class StdOutListener(StreamListener):
             writer.writerow(['Created_at', 'Text', 'SentimentClassification', 'PolarityScore'])
 
         # if model_dir:
-            try:
-                self.model = Model()
-                self.model.ld_model('models/RNN-model@latest')
-            except Exception as e:
-                print("StdOutListenerError : ")
-                exit(e)
+        try:
+            self.model = Model()
+            self.model.ld_model('models/RNN-model@latest')
+        except Exception as e:
+            print("StdOutListenerError : ")
+            exit(e)
         # else:
         #     exit("Please Specify model's directory")
 
@@ -211,7 +211,7 @@ class StdOutListener(StreamListener):
         try:
             print("\n===============================================")
             try:
-                print(f'Text: {tweet.encode("utf-8")}')
+                print(f'Text: {str(tweet)}')
             except UnicodeEncodeError:
                 pass
             except UnicodeDecodeError:

@@ -31,7 +31,7 @@ def server():
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             start_new_session=True,
-            encoding='utf-8',
+            encoding='windows-1252',
             # universal_newlines=True,
             **kwargs)
         global process
